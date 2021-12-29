@@ -20,7 +20,7 @@ public class CreateWorldPanel : MonoBehaviour
     {
         WorldB.worldType = (WorldType)worldtype;
         PanelRoot.SetActive(false);
-        Debug.Log("Creating world, type " + WorldB.worldType.ToString());
+       // Debug.Log("Creating world, type " + WorldB.worldType.ToString());
         World.Instance.Type = WorldB.worldType;
         World.Instance.Name = WorldB.WorldName.text;
         GameController.Instance.StartGame();

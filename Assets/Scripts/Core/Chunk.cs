@@ -699,12 +699,12 @@ public class Chunk : MonoBehaviour
 
                             if (blocksettings != null)
                             {
-                                texUp = new Vector2(0, blocksettings.TexUp);
-                                texDown = new Vector2(0, blocksettings.TexDown);
-                                texForward = new Vector2(0, blocksettings.TexForward);
-                                texBack = new Vector2(0, blocksettings.TexBack);
-                                texRight = new Vector2(0, blocksettings.TexRight);
-                                texLeft = new Vector2(0, blocksettings.TexLeft);
+                                texUp = new Vector2(0, blocksettings.TexUp *_world.TexturePackSize);
+                                texDown = new Vector2(0, blocksettings.TexDown * _world.TexturePackSize);
+                                texForward = new Vector2(0, blocksettings.TexForward * _world.TexturePackSize);
+                                texBack = new Vector2(0, blocksettings.TexBack * _world.TexturePackSize);
+                                texRight = new Vector2(0, blocksettings.TexRight * _world.TexturePackSize);
+                                texLeft = new Vector2(0, blocksettings.TexLeft * _world.TexturePackSize);
                                 isTransparent = blocksettings.isTransparent;
                                 isAnimated = false; // later add
                             }

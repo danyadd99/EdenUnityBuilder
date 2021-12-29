@@ -56,7 +56,13 @@ public class World : MonoBehaviour
 
     public static int TREE_SPACING = 2;
 
+    public static int MaxHeight = 256; // Max height limit
+
+    public int TexturePackSize = 2;
+
     public Text BottomTextInfo;
+
+    private VoxelUtils vx;
 
     [Serializable]
     public class TerrainMaterial
@@ -78,6 +84,8 @@ public class World : MonoBehaviour
         Chunks = new Dictionary<Vector3Int, Chunk>();
         Name = Name.Replace(".eden", "");
         _firstLoading = true;
+
+        vx = new VoxelUtils(this);
 
         StartCoroutine(UpdateGeneration());
         StartCoroutine(CheckQueue());
@@ -186,7 +194,10 @@ public class World : MonoBehaviour
             Vector3 t = new Vector3(Mathf.FloorToInt((float)x / ChunkSize) * ChunkSize, Mathf.FloorToInt((float)y / ChunkSize) * ChunkSize, Mathf.FloorToInt((float)z / ChunkSize) * ChunkSize);
             c = CreateChunk(t);
         }
-        c.SetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z, block);
+        else
+        {
+            c.SetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z, block);
+        }
     }
 
     public void SetBlock(int x, int y, int z, Block block)
@@ -198,7 +209,10 @@ public class World : MonoBehaviour
             Vector3 t = new Vector3(Mathf.FloorToInt((float)x / ChunkSize) * ChunkSize, Mathf.FloorToInt((float)y / ChunkSize) * ChunkSize, Mathf.FloorToInt((float)z / ChunkSize) * ChunkSize);
             c = CreateChunk(t);
         }
-        c.SetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z, block);
+        else
+        {
+            c.SetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z, block);
+        }
     }
 
     public void SetColor(int x, int y, int z, Paintings color)
@@ -206,7 +220,10 @@ public class World : MonoBehaviour
         Chunk c = FindChunk(x, y, z);
         Block block = c.GetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z);
         block.Painting = color;
-        c.SetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z, block);
+        if (c != null)
+        {
+            c.SetBlock(x - c.Position.x, y - c.Position.y, z - c.Position.z, block);
+        }
     }
 
     public Chunk FindChunk(int x, int y, int z)
@@ -359,7 +376,7 @@ public class World : MonoBehaviour
                             }
                             else
                             {
-                                EdenWorldDecoder.Instance.LoadChunk(v);
+                                // EdenWorldDecoder.Instance.LoadChunk(v);
                             }
                         }
                         else
@@ -384,24 +401,31 @@ public class World : MonoBehaviour
 
     public Chunk CreateChunk(Vector3 pos)
     {
-        int x = Mathf.FloorToInt(pos.x);
-        int y = Mathf.FloorToInt(pos.y);
-        int z = Mathf.FloorToInt(pos.z);
-
-        x = Mathf.FloorToInt((float)x / ChunkSize) * ChunkSize;
-        y = Mathf.FloorToInt((float)y / ChunkSize) * ChunkSize;
-        z = Mathf.FloorToInt((float)z / ChunkSize) * ChunkSize;
-        if (FindChunk(x, y, z) == null)
+        if (pos.y < MaxHeight && pos.y >= 0)
         {
-            Chunk chunk = Instantiate(ChunkPrefab, new Vector3(x, y, z), Quaternion.identity).GetComponent<Chunk>();
-            chunk.transform.parent = transform;
-            chunk.InitData();
-            Chunks.Add(Vector3Int.CeilToInt(pos), chunk);
-            return chunk;
+            int x = Mathf.FloorToInt(pos.x);
+            int y = Mathf.FloorToInt(pos.y);
+            int z = Mathf.FloorToInt(pos.z);
+
+            x = Mathf.FloorToInt((float)x / ChunkSize) * ChunkSize;
+            y = Mathf.FloorToInt((float)y / ChunkSize) * ChunkSize;
+            z = Mathf.FloorToInt((float)z / ChunkSize) * ChunkSize;
+            if (FindChunk(x, y, z) == null)
+            {
+                Chunk chunk = Instantiate(ChunkPrefab, new Vector3(x, y, z), Quaternion.identity).GetComponent<Chunk>();
+                chunk.transform.parent = transform;
+                chunk.InitData();
+                Chunks.Add(Vector3Int.CeilToInt(pos), chunk);
+                return chunk;
+            }
+            else
+            {
+                return FindChunk(x, y, z);
+            }
         }
         else
         {
-            return FindChunk(x, y, z);
+            return null;
         }
     }
 

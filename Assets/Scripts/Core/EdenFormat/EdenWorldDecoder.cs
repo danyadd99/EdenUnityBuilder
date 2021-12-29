@@ -13,8 +13,10 @@ public class EdenWorldDecoder : MonoBehaviour // Based on https://mrob.com/pub/v
 {
 
     public string Name;
+
     public Dictionary<int, Vector2Int> Chunks;
-    public static int skyColor;
+
+    //public static int skyColor;
     public static string worldName;
 
     [HideInInspector]
@@ -24,7 +26,11 @@ public class EdenWorldDecoder : MonoBehaviour // Based on https://mrob.com/pub/v
 
     public static EdenWorldDecoder Instance;
 
-    string CurrentPathWorld;
+    public string CurrentPathWorld;
+
+    public Vector4 WorldArea;
+
+    public WorldFileHeader Header;
 
     void Start()
     {
@@ -32,19 +38,68 @@ public class EdenWorldDecoder : MonoBehaviour // Based on https://mrob.com/pub/v
         world = World.Instance;
     }
 
+    [Serializable]
+    public class WorldFileHeader // Header of world file
+    {
+        // This part is used from 1.1.1 to New Dawn versions
+        public int level_seed;
+        public Vector3 pos = new Vector3(0, 0, 0);
+        public Vector3 home = new Vector3(0, 0, 0);
+        public float yaw;
+        public ulong directory_offset;
+        public char[] name = new char[50];
+
+        // Not used because wrong values ​​are shown idk how to fix
+        public int version;
+        public char[] hash = new char[36];
+        public byte[] skycolors = new byte[16];
+        public int goldencubes;
+    }
+
     public void LoadWorld(string path)
     {
         CurrentPathWorld = path;
-        List<int> skyColors = new List<int>();
-        byte[] bytes;
+        //List<int> skyColors = new List<int>();
         world.Name = Path.GetFileName(CurrentPathWorld);
-        using (FileStream stream = new FileStream(path, FileMode.Open))
+
+        Header = new WorldFileHeader();
+        Stream streamHeader = File.Open(path, FileMode.Open);
+        using (BinaryReader reader = new BinaryReader(streamHeader))
         {
-            bytes = new byte[stream.Length];
-            stream.Read(bytes, 0, bytes.Length);
+            Header.level_seed = reader.ReadInt32();
+            Header.pos.x = reader.ReadSingle();
+            Header.pos.y = reader.ReadSingle();
+            Header.pos.z = reader.ReadSingle();
+
+            Header.home.x = reader.ReadSingle();
+            Header.home.y = reader.ReadSingle();
+            Header.home.z = reader.ReadSingle();
+
+            Header.yaw = reader.ReadSingle();
+
+            Header.directory_offset = reader.ReadUInt32();
+
+            Header.name = reader.ReadChars(50);
+
+            //Header.version = reader.ReadInt32();
+
+            //Header.hash = reader.ReadChars(36);
+
+            //Header.skycolors = reader.ReadBytes(16);
+
+            //Header.goldencubes = reader.ReadInt32();
+            streamHeader.Close();
+        }
+
+        using (FileStream stream = File.Open(path, FileMode.Open))
+        {
+            Bytes = new byte[stream.Length];
+            stream.Read(Bytes, 0, Bytes.Length);
+            stream.Close();
         }
 
         // Get Sky Color
+        /*
         for (int i = 132; i <= 148; i++)
         {
             if (bytes[i] != 14) skyColors.Add(bytes[i]);
@@ -55,39 +110,34 @@ public class EdenWorldDecoder : MonoBehaviour // Based on https://mrob.com/pub/v
 
         SkyManager.Instance.Set((Paintings)skyColor);
         SkyManager.Instance.FastUpdateSky();
+        */
+        int chunkPointerStartIndex = Bytes[35] * 256 * 256 * 256 + Bytes[34] * 256 * 256 + Bytes[33] * 256 + Bytes[32];
 
-        int chunkPointerStartIndex = bytes[35] * 256 * 256 * 256 + bytes[34] * 256 * 256 + bytes[33] * 256 + bytes[32];
-
-        byte[] nameArray = bytes.TakeWhile((b, i) => ((i < 40 || b != 0) && i <= 75)).ToArray();
+        byte[] nameArray = Bytes.TakeWhile((b, i) => ((i < 40 || b != 0) && i <= 75)).ToArray();
         worldName = Encoding.ASCII.GetString(nameArray, 40, nameArray.Length - 40);
         Vector4 worldArea = new Vector4(0, 0, 0, 0);
         Dictionary<int, Vector2Int> chunks = new Dictionary<int, Vector2Int>();
-        Debug.Log("Loading world... " + worldName);
-        // Create array of chunk points and addresses
+        // create array of chunk points and addresses
         int currentChunkPointerIndex = chunkPointerStartIndex;
         do
         {
             chunks.Add(
-                bytes[currentChunkPointerIndex + 11] * 256 * 256 * 256 + bytes[currentChunkPointerIndex + 10] * 256 * 256 + bytes[currentChunkPointerIndex + 9] * 256 + bytes[currentChunkPointerIndex + 8],//address
-                new Vector2Int(bytes[currentChunkPointerIndex + 1] * 256 + bytes[currentChunkPointerIndex], bytes[currentChunkPointerIndex + 5] * 256 + bytes[currentChunkPointerIndex + 4])); //Position
-        } while ((currentChunkPointerIndex += 16) < bytes.Length);
+                Bytes[currentChunkPointerIndex + 11] * 256 * 256 * 256 + Bytes[currentChunkPointerIndex + 10] * 256 * 256 + Bytes[currentChunkPointerIndex + 9] * 256 + Bytes[currentChunkPointerIndex + 8],// address
+                new Vector2Int(Bytes[currentChunkPointerIndex + 1] * 256 + Bytes[currentChunkPointerIndex], Bytes[currentChunkPointerIndex + 5] * 256 + Bytes[currentChunkPointerIndex + 4])); // position
+        } while ((currentChunkPointerIndex += 16) < Bytes.Length);
 
-        //Get max dimensions of world
+        // get max size of the world
         worldArea.x = chunks.Values.Min(p => p.x);
         worldArea.y = chunks.Values.Min(p => p.y);
         worldArea.z = chunks.Values.Max(p => p.x) - worldArea.x + 1;
         worldArea.w = chunks.Values.Max(p => p.y) - worldArea.y + 1;
-        Bytes = bytes;
         Chunks = chunks;
         WorldArea = worldArea;
     }
-    public Vector4 WorldArea;
-
 
     public bool HasChunk(Vector2Int Pos)
     {
-        // Vector2Int posConverted = new Vector2Int((Pos.x - (int)WorldArea.x) * 16, (Pos.y - (int)WorldArea.y) * 16);
-        // Debug.Log(posConverted);
+        ;
         Vector2Int ConvertedPosNew = new Vector2Int((Pos.y / 16) + (int)WorldArea.x, (Pos.x / 16) + (int)WorldArea.y);
         if (Chunks.ContainsValue(ConvertedPosNew))
         {

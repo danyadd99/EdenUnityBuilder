@@ -96,11 +96,11 @@ public class BlockSet : MonoBehaviour
     public void Awake()
     {
         InitBlockSet();
-        Debug.Log("Blockset is init", gameObject);
     }
 
     public void InitBlockSet()
     {
+        // This is hardcoded blocks
         Blocks.Add(BlockType.Air, new BlockSettings(0, 0, 0, 0, 0, 0, false, false, false, 0, BlockType.Air, Constants.Blocks.Generic));
         Blocks.Add(BlockType.Bedrock, new BlockSettings(1f, 1f, 1f, 1f, 1f, 1f, false, false, false, 0, BlockType.Bedrock, Constants.Blocks.Generic)); // First solid block
         Blocks.Add(BlockType.Stone, new BlockSettings(2f, 2f, 2f, 2f, 2f, 2f, false, false, false, 0, BlockType.Stone, Constants.Blocks.Stone));
